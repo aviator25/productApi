@@ -5,6 +5,8 @@ var router = express.Router();
 var mongoose = require('mongoose');
 mongoose.connect('mongodb://products25:abc123@ds161700.mlab.com:61700/products25')
 var Product = require('./products');
+var User = require('./user');
+var bcyrpt = require('bcrypt-node');
 
 app.use(bodyParser.urlencoded({ extended: true}));
 app.use(bodyParser.json());
@@ -94,6 +96,44 @@ router.route('/products/:product_id')
 			});
 		})
 
+
+router.route('/register')
+
+	.post(function(req,res){
+
+		var user = new User();
+		user.username = req.body.username;
+		user.password = req.body.password;
+
+		console.log(req.body.password);
+		user.save(function(err){
+			if(err){
+				res.send(err)
+			} else {
+				res.json({ message: "Welcome!"})
+			}
+		})
+	})
+
+
+router.route('/login')
+
+	.post(function(req, res) {
+		User.findOne({username: req.body.username},
+
+			function(err, user) {
+
+				if(err){
+					res.send(err)
+				} else {
+					if(user) {
+
+						res.json({ message: "User succesfully logged in!"})
+					}
+				}
+			}
+			)
+	})
 
 
 app.use('/api' , router);
