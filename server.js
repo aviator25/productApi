@@ -7,9 +7,16 @@ mongoose.connect('mongodb://products25:abc123@ds161700.mlab.com:61700/products25
 var Product = require('./products');
 var User = require('./user');
 var bcyrpt = require('bcrypt-node');
+var auth = require('./auth')();
+var passport = require('passport');
+var jwt = require('jsonwebtoken')
+var config = require('./config');
 
+
+app.use(passport.initialize());
 app.use(bodyParser.urlencoded({ extended: true}));
 app.use(bodyParser.json());
+app.use(auth.initialize());
 
 var port = process.env.PORT || 8080;
 
@@ -25,6 +32,8 @@ router.get('/', function(req, res) {
 
 // url for product api
 router.route('/products')
+
+	// .post(auth.isAuthenticated,Product.postProducts)
 
 	.post(function(req, res) {
 
@@ -128,12 +137,33 @@ router.route('/login')
 				} else {
 					if(user) {
 
-						res.json({ message: "User succesfully logged in!"})
+						//Check if password matches
+						user.comparePassword(req.body.password, function(err, isMatch){
+							if(isMatch && !err){
+								//Create token if the password matched and no error was thrown
+								var token = jwt.sign(user.toJSON(), config.secret, {
+									expiresIn: 10080 // in seconds
+								});
+								res.json({ success: true, token: 'JWT ' + token });
+							} else {
+								res.send({ success: false, message: 'Authentication failed. Password not matched'})
+							}
+						});
+
+					}
+
+					else {
+						res.json({ message: "User not found!"})
 					}
 				}
 			}
 			)
 	})
+
+
+	router.get('/dashboard', auth.authenticate(), function(req, res) {
+		res.send('It worked! User id is: ' + req.user._id + '.' );
+	});
 
 
 app.use('/api' , router);
